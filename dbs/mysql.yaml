@@ -12,16 +12,6 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   volumeMode: Filesystem
   storageClassName: local-storage
-    #  local:
-    #    path: "/tmp/mysqldata" 
-    #  nodeAffinity:
-    #    required:
-    #      nodeSelectorTerms:
-    #      - matchExpressions:
-    #        - key: kubernetes.io/hostname
-    #          operator: In
-    #          values:
-    #          - docker-desktop
   hostPath:
     path: /mysql-volume
     type: DirectoryOrCreate
