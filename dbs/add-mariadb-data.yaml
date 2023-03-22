@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: add-mariadb-data
+spec:
+  template:
+    # This is the pod template
+    spec:
+      containers:
+        - name: add-mariadb-data
+          image: mariadb
+          command: ['sh', '-c']
+          args:
+            - echo adding-data;
+              mariadb -u root -ppassword -h mariadb -e "DROP DATABASE IF EXISTS db;CREATE DATABASE db; USE db; CREATE TABLE dummy (dummy varchar(255), date datetime); INSERT INTO dummy VALUES (\"mariadbdata\", curdate()); SELECT * from dummy;";
+      restartPolicy: OnFailure
+
