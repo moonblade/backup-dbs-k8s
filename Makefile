@@ -16,7 +16,12 @@ postgresql:
 	kubectl wait --for=condition=ready --timeout=5m pod postgresql-0 
 	kubectl exec -it postgresql-0 -- bash -c "export PGPASSWORD=password; psql -U postgres -c \"CREATE TABLE public.dummy(dummy character varying, date timestamp); INSERT INTO public.dummy VALUES ('asdf',CURRENT_TIMESTAMP::timestamp); SELECT * from public.dummy;\""
 
-dbs: mysql mariadb postgresql
+mongodb:
+	helm install mongodb bitnami/mongodb --set auth.rootPassword=password --set persistence.enabled=false
+	kubectl wait --for=condition=ready --timeout=5m pod -l app.kubernetes.io/instance=mongodb
+	kubectl exec -it $$(kubectl get pod -l app.kubernetes.io/instance=mongodb -o custom-columns=":metadata.name" | tail -n1) -- bash -c "mongosh mongodb://localhost:27017 -u root -p password --eval 'db.dummy.insertOne({name:\"mongocontent\"}); db.dummy.find({})'"
+
+dbs: mysql mariadb postgresql mongodb
 
 clean-mysql:
 	helm uninstall mysql
@@ -27,6 +32,7 @@ clean-mariadb:
 clean-postgresql:
 	helm uninstall postgresql
 
-clean: clean-mariadb clean-mysql clean-postgresql
-	
+clean-mongodb:
+	helm uninstall mongodb
 
+clean: clean-mariadb clean-mysql clean-postgresql clean-mongodb
