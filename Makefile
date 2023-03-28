@@ -27,11 +27,19 @@ minio:
 
 mongo-backup:
 	-kubectl delete jobs mongodump
-	kubectl applpy -f resources/mongo.yaml
+	kubectl apply -f resources/mongo.yaml
 	kubectl wait --for=condition=complete job/mongodump
 	kubectl logs jobs/mongodump
 	kubectl logs jobs/mongodump -c mc
 	@echo mongo backup done
+
+mariadb-backup:
+	-kubectl delete jobs mariadb-backup
+	kubectl apply -f resources/mariadb.yaml
+	kubectl wait --for=condition=complete job/mariadb-backup
+	kubectl logs jobs/mariadb-backup
+	kubectl logs jobs/mariadb-backup -c mc
+	@echo mariadb backup done
 
 dbs: mysql mariadb postgresql mongodb
 

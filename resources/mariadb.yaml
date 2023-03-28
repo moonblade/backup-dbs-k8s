@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-creds
+type: Opaque
+stringData:
+  user: root
+  password: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-minio-creds
+type: Opaque
+stringData:
+  host: http://minio:9000
+  accesskey: admin
+  secretkey: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-config
+type: Opaque
+stringData:
+  host: mariadb.default.svc
+  database: --all-databases
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mariadb-backup
+spec:
+  template:
+    spec:
+      containers:
+      - name: mariadb-backup
+        image: mariadb:latest
+        command: [ "/bin/bash", "-c"]
+        args:
+        - BACKUP_FILE="backup-$(date +%Y-%m-%d-%H-%M-%S).tar.gz";
+          rm -rf /backup/*;
+          mysqldump -h $host -u $user -p$password $database --single-transaction > /backup/backup.sql;
+          tar -czvf /backup/$BACKUP_FILE /backup/backup.sql;
+        envFrom:
+        - secretRef:
+            name: mariadb-creds
+        - secretRef:
+            name: mariadb-config
+        volumeMounts:
+        - name: backup-volume
+          mountPath: /backup
+        - name: script-volume
+          mountPath: /etc/backup
+      - name: mc
+        image: minio/mc
+        command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc mb --ignore-existing --with-lock myminio/mariadb; mc cp /backup/*.tar.gz myminio/mariadb/ --recursive --no-color --quiet"]
+        envFrom:
+        - secretRef:
+            name: mariadb-minio-creds
+        volumeMounts:
+        - name: backup-volume
+          mountPath: /backup
+      restartPolicy: Never
+      volumes:
+      - name: backup-volume
+        emptyDir: {}
+      - name: script-volume
+        configMap:
+          name: backup-script
+

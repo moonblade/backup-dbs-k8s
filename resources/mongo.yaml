@@ -10,9 +10,10 @@ stringData:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: minio-credentials
+  name: mongo-minio-credentials
 type: Opaque
 stringData:
+  host: http://minio:9000
   accesskey: admin
   secretkey: password
 ---
@@ -26,7 +27,7 @@ spec:
       containers:
         - name: mongodump
           image: bitnami/mongodb:latest
-          command: ["sh", "-c", "mongodump --host mongodb --username $MONGODB_USERNAME --password $MONGODB_PASSWORD --out=/tmp; tar -czvf /tmp/backup-$(date +%Y-%m-%d-%H-%M-%S).tar.gz /tmp;"]
+          command: ["sh", "-c", "rm -rf /tmp/*; mongodump --host mongodb --username $MONGODB_USERNAME --password $MONGODB_PASSWORD --out=/tmp/backup; tar -czvf /tmp/backup-$(date +%Y-%m-%d-%H-%M-%S).tar.gz -C /tmp/backup .;"]
           env:
             - name: MONGODB_USERNAME
               valueFrom:
@@ -43,20 +44,10 @@ spec:
               mountPath: /tmp
         - name: mc
           image: minio/mc
-          command: ["sh", "-c", "mc alias set myminio $HOSTNAME $MINIO_ACCESS_KEY $MINIO_SECRET_KEY; mc mb --ignore-existing --with-lock myminio/mongo; ls /tmp; mc cp /tmp/*.tar.gz myminio/mongo/$(date +%Y-%m-%d-%H-%M-%S) --recursive --no-color --quiet"]
-          env:
-            - name: HOSTNAME
-              value: http://minio:9000
-            - name: MINIO_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: accesskey
-            - name: MINIO_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: minio-credentials
-                  key: secretkey
+          command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc mb --ignore-existing --with-lock myminio/mongo; ls /tmp; mc cp /tmp/*.tar.gz myminio/mongo/ --recursive --no-color --quiet"]
+          envFrom:
+            - secretRef:
+                name: mongo-minio-credentials
           volumeMounts:
             - name: dump
               mountPath: /tmp
