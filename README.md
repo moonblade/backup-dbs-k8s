@@ -4,3 +4,21 @@ Next task: I would like you to create a way to backup MySQL / mariadb / PostgreS
 
 1. First create databases of mysql, mariadb, postres and mongo and add some dummy data to each of them
 
+```
+make dbs
+```
+
+
+2. Setup minio for backup
+
+```
+make minio
+```
+
+
+3. Backup mongo
+
+``` 
+make mongo-backup
+```
+

@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-credentials
+type: Opaque
+stringData:
+  username: root
+  password: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-credentials
+type: Opaque
+stringData:
+  accesskey: admin
+  secretkey: password
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodump
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongodump
+          image: bitnami/mongodb:latest
+          command: ["sh", "-c", "mongodump --host mongodb --username $MONGODB_USERNAME --password $MONGODB_PASSWORD --out=/tmp; tar -czvf /tmp/backup-$(date +%Y-%m-%d-%H-%M-%S).tar.gz /tmp;"]
+          env:
+            - name: MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: username
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: password
+          volumeMounts:
+            - name: dump
+              mountPath: /tmp
+        - name: mc
+          image: minio/mc
+          command: ["sh", "-c", "mc alias set myminio $HOSTNAME $MINIO_ACCESS_KEY $MINIO_SECRET_KEY; mc mb --ignore-existing --with-lock myminio/mongo; ls /tmp; mc cp /tmp/*.tar.gz myminio/mongo/$(date +%Y-%m-%d-%H-%M-%S) --recursive --no-color --quiet"]
+          env:
+            - name: HOSTNAME
+              value: http://minio:9000
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: secretkey
+          volumeMounts:
+            - name: dump
+              mountPath: /tmp
+      restartPolicy: Never
+      volumes:
+        - name: dump
+          emptyDir: {}
+      imagePullSecrets:
+        - name: regcred
+

@@ -21,6 +21,18 @@ mongodb:
 	kubectl wait --for=condition=ready --timeout=5m pod -l app.kubernetes.io/instance=mongodb
 	kubectl exec -it $$(kubectl get pod -l app.kubernetes.io/instance=mongodb -o custom-columns=":metadata.name" | tail -n1) -- bash -c "mongosh mongodb://localhost:27017 -u root -p password --eval 'db.dummy.insertOne({name:\"mongocontent\"}); db.dummy.find({})'"
 
+minio:
+	helm install minio bitnami/minio --set auth.rootPassword=password
+	kubectl wait --for=condition=ready --timeout=5m pod -l app.kubernetes.io/name=minio
+
+mongo-backup:
+	-kubectl delete jobs mongodump
+	kubectl applpy -f resources/mongo.yaml
+	kubectl wait --for=condition=complete job/mongodump
+	kubectl logs jobs/mongodump
+	kubectl logs jobs/mongodump -c mc
+	@echo mongo backup done
+
 dbs: mysql mariadb postgresql mongodb
 
 clean-mysql:
@@ -34,5 +46,8 @@ clean-postgresql:
 
 clean-mongodb:
 	helm uninstall mongodb
+
+clean-minio:
+	helm uninstall minio
 
 clean: clean-mariadb clean-mysql clean-postgresql clean-mongodb
