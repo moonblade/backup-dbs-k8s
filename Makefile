@@ -57,22 +57,27 @@ postgresql-backup:
 	kubectl logs jobs/postgresql-backup -c mc
 	@echo postgresql backup done
 
+clean-jobs:
+	-kubectl delete -f resources/mongo.yaml
+	-kubectl delete -f resources/mysql.yaml
+	-kubectl delete -f resources/postgresql.yaml
+	-kubectl delete -f resources/mariadb.yaml
 
 dbs: mysql mariadb postgresql mongodb
 
 clean-mysql:
-	helm uninstall mysql
+	-helm uninstall mysql
 
 clean-mariadb:
-	helm uninstall mariadb
+	-helm uninstall mariadb
 
 clean-postgresql:
-	helm uninstall postgresql
+	-helm uninstall postgresql
 
 clean-mongodb:
-	helm uninstall mongodb
+	-helm uninstall mongodb
 
 clean-minio:
-	helm uninstall minio
+	-helm uninstall minio
 
-clean: clean-mariadb clean-mysql clean-postgresql clean-mongodb
+clean: clean-mariadb clean-mysql clean-postgresql clean-mongodb clean-minio
