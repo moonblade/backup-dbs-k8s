@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mysql-creds
+  name: postgresql-creds
 type: Opaque
 stringData:
-  user: root
-  password: password
+  PGUSER: postgres
+  PGPASSWORD: password
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mysql-minio-creds
+  name: postgresql-minio-creds
 type: Opaque
 stringData:
   host: http://minio:9000
@@ -20,47 +20,46 @@ stringData:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mysql-config
+  name: postgresql-config
 type: Opaque
 stringData:
-  host: mysql.default.svc
-  database: --all-databases
+  PGHOST: postgresql.default.svc
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mysql-backup
+  name: postgresql-backup
 spec:
   template:
     spec:
       containers:
-      - name: mysql-backup
-        image: mysql:latest
+      - name: postgresql-backup
+        image: postgres
         command: [ "/bin/bash", "-c"]
         args:
         - BACKUP_FILE="backup-$(date +%Y-%m-%d-%H-%M-%S).tar.gz";
           rm -rf /backup/*;
-          mysqldump -h $host -u $user -p$password $database --single-transaction > /backup/backup.sql;
+          pg_dumpall -f /backup/backup.sql;
           tar -czvf /backup/$BACKUP_FILE /backup/backup.sql;
         envFrom:
         - secretRef:
-            name: mysql-creds
+            name: postgresql-creds
         - secretRef:
-            name: mysql-config
+            name: postgresql-config
         volumeMounts:
-        - name: mysql-backup-volume
+        - name: backup-volume
           mountPath: /backup
       - name: mc
         image: minio/mc
-        command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc mb --ignore-existing --with-lock myminio/mysql; mc cp /backup/*.tar.gz myminio/mysql/ --recursive --no-color --quiet"]
+        command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc mb --ignore-existing --with-lock myminio/postgresql; mc cp /backup/*.tar.gz myminio/postgresql/ --recursive --no-color --quiet"]
         envFrom:
         - secretRef:
-            name: mysql-minio-creds
+            name: postgresql-minio-creds
         volumeMounts:
-        - name: mysql-backup-volume
+        - name: backup-volume
           mountPath: /backup
       restartPolicy: Never
       volumes:
-      - name: mysql-backup-volume
+      - name: backup-volume
         emptyDir: {}
 

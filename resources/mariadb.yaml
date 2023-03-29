@@ -50,8 +50,6 @@ spec:
         volumeMounts:
         - name: backup-volume
           mountPath: /backup
-        - name: script-volume
-          mountPath: /etc/backup
       - name: mc
         image: minio/mc
         command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc mb --ignore-existing --with-lock myminio/mariadb; mc cp /backup/*.tar.gz myminio/mariadb/ --recursive --no-color --quiet"]
@@ -65,7 +63,4 @@ spec:
       volumes:
       - name: backup-volume
         emptyDir: {}
-      - name: script-volume
-        configMap:
-          name: backup-script
 
