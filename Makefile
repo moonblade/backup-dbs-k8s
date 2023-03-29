@@ -41,6 +41,14 @@ mariadb-backup:
 	kubectl logs jobs/mariadb-backup -c mc
 	@echo mariadb backup done
 
+mysql-backup:
+	-kubectl delete jobs mysql-backup
+	kubectl apply -f resources/mysql.yaml
+	kubectl wait --for=condition=complete job/mysql-backup
+	kubectl logs jobs/mysql-backup
+	kubectl logs jobs/mysql-backup -c mc
+	@echo mysql backup done
+
 dbs: mysql mariadb postgresql mongodb
 
 clean-mysql:

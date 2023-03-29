@@ -1,1 +1,4 @@
-data/mysql_pass
+resources/mongo-cron.yaml
+resources/mariadb-cron.yaml
+resources/mysql-cron.yaml
+resources/postgresql-cron.yaml
