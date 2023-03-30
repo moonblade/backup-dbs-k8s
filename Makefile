@@ -63,6 +63,23 @@ clean-jobs:
 	-kubectl delete -f resources/postgresql.yaml
 	-kubectl delete -f resources/mariadb.yaml
 
+resources/mongo-cron.yaml:
+	python resources/jobToCron.py "resources/mongo.yaml" "resources/mongo-cron.yaml" "0 0 * * *"
+
+resources/mariadb-cron.yaml:
+	python resources/jobToCron.py "resources/mariadb.yaml" "resources/mariadb-cron.yaml" "0 0 * * *"
+
+resources/mysql-cron.yaml:
+	python resources/jobToCron.py "resources/mysql.yaml" "resources/mysql-cron.yaml" "0 0 * * *"
+
+resources/postgresql-cron.yaml:
+	python resources/jobToCron.py "resources/postgresql.yaml" "resources/postgresql-cron.yaml" "0 0 * * *"
+
+clean-cron:
+	rm resources/*-cron.yaml
+
+cron-jobs: resources/mongo-cron.yaml resources/mysql-cron.yaml resources/mariadb-cron.yaml resources/postgresql-cron.yaml
+
 dbs: mysql mariadb postgresql mongodb
 
 clean-mysql:
