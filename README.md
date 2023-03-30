@@ -16,9 +16,29 @@ make minio
 ```
 
 
-3. Backup mongo
+3. Backup
 
 ``` 
-make mongo-backup
+make backups
+```
+
+4. Test that the backups worked
+
+```
+make minio-port-forward
+```
+
+Login with admin, password. download each backup and verify the contents
+
+4. Cleanup
+
+```
+make clean
+```
+
+5. Get cron instead of single jobs
+
+```
+make cron-jobs
 ```
 

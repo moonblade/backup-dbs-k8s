@@ -57,6 +57,11 @@ postgresql-backup:
 	kubectl logs jobs/postgresql-backup -c mc
 	@echo postgresql backup done
 
+backups: mysql-backup mariadb-backup postgresql-backup mongo-backup
+
+minio-port-forward:
+	kubectl port-forward svc/minio 9001
+
 clean-jobs:
 	-kubectl delete -f resources/mongo.yaml
 	-kubectl delete -f resources/mysql.yaml
