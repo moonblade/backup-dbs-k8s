@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-creds
+type: Opaque
+stringData:
+  user: root
+  password: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-minio-creds
+type: Opaque
+stringData:
+  host: http://minio:9000
+  accesskey: admin
+  secretkey: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-config
+type: Opaque
+stringData:
+  host: mysql.default.svc
+  database: --all-databases
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-restore
+spec:
+  template:
+    spec:
+      containers:
+      - name: mc
+        image: minio/mc
+        command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc cp myminio/mysql/$(mc ls myminio/mysql --json | jq '.key' -r | tail -n1) /backup/ --recursive --no-color --quiet; ls /backup;"]
+        envFrom:
+        - secretRef:
+            name: mysql-minio-creds
+        volumeMounts:
+          - name: mysql-backup-volume
+            mountPath: /backup
+      - name: mysql-restore
+        image: mysql:latest
+        command: [ "/bin/bash", "-c"]
+        args:
+        - BACKUP_FILE=$(ls /backup/*.tar.gz | tail -n 1);
+          tar -xvzf $BACKUP_FILE;
+          mysql -h $host -u $user -p$password < /backup/backup.sql;
+        envFrom:
+        - secretRef:
+            name: mysql-creds
+        - secretRef:
+            name: mysql-config
+        volumeMounts:
+        - name: mysql-backup-volume
+          mountPath: /backup
+      restartPolicy: Never
+      volumes:
+      - name: mysql-backup-volume
+        emptyDir: {}
+
