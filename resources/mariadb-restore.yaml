@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-creds
+type: Opaque
+stringData:
+  user: root
+  password: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-minio-creds
+type: Opaque
+stringData:
+  host: http://minio:9000
+  accesskey: admin
+  secretkey: password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-config
+type: Opaque
+stringData:
+  host: mariadb.default.svc
+  database: --all-databases
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mariadb-restore
+spec:
+  template:
+    spec:
+      containers:
+      - name: mc
+        image: minio/mc
+        command: ["sh", "-c", "mc alias set myminio $host $accesskey $secretkey; mc cp myminio/mariadb/$(mc ls myminio/mariadb --json | jq '.key' -r | tail -n1) /backup/ --recursive --no-color --quiet; ls /backup;"]
+        envFrom:
+        - secretRef:
+            name: mariadb-minio-creds
+        volumeMounts:
+          - name: mariadb-backup-volume
+            mountPath: /backup
+      - name: mariadb-restore
+        image: mariadb:latest
+        command: [ "/bin/bash", "-c"]
+        args:
+        - BACKUP_FILE=$(ls /backup/*.tar.gz | tail -n 1);
+          tar -xvzf $BACKUP_FILE;
+          mysql -h $host -u $user -p$password < /backup/backup.sql;
+        envFrom:
+        - secretRef:
+            name: mariadb-creds
+        - secretRef:
+            name: mariadb-config
+        volumeMounts:
+        - name: mariadb-backup-volume
+          mountPath: /backup
+      restartPolicy: Never
+      volumes:
+      - name: mariadb-backup-volume
+        emptyDir: {}
+

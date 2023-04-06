@@ -68,6 +68,14 @@ mysql-restore:
 	kubectl logs jobs/mysql-restore -c mysql-restore
 	@echo mysql restore done
 
+mariadb-restore:
+	@echo Restoring last backup
+	-kubectl delete jobs mariadb-restore
+	kubectl apply -f resources/mariadb-restore.yaml
+	kubectl wait --for=condition=complete job/mariadb-restore
+	kubectl logs jobs/mariadb-restore
+	kubectl logs jobs/mariadb-restore -c mariadb-restore
+	@echo mariadb restore done
 
 postgresql-backup:
 	-kubectl delete jobs postgresql-backup
